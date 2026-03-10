@@ -11,8 +11,8 @@ A production-grade Agentic RAG system for financial document analysis, built on 
 - **API**: FastAPI
 
 ## Project Status
-- [x] Phase 1 — Ingestion Pipeline (in progress)
-- [ ] Phase 2 — Agentic Layer
+- [x] Phase 1 — Ingestion Pipeline
+- [ ] Phase 2 — Agentic Layer (in progress)
 - [ ] Phase 3 — Production Hardening
 - [ ] Phase 4 — AWS Migration
 

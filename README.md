@@ -12,8 +12,8 @@ A production-grade Agentic RAG system for financial document analysis, built on 
 
 ## Project Status
 - [x] Phase 1 — Ingestion Pipeline
-- [ ] Phase 2 — Agentic Layer (in progress)
-- [ ] Phase 3 — Production Hardening
+- [x] Phase 2 — Agentic Layer
+- [ ] Phase 3 — Production Hardening (in progress)
 - [ ] Phase 4 — AWS Migration
 
 ## Setup

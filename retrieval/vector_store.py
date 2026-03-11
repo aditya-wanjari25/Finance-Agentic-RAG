@@ -119,3 +119,32 @@ class VectorStore:
         """Useful for debugging — shows what's in the collection."""
         count = self.collection.count()
         return {"total_chunks": count, "collection": self.collection.name}
+    
+    def get_by_metadata(
+    self,
+    filters: dict,
+    limit: int = 50,
+) -> list[dict]:
+        """
+        Fetches chunks by metadata filter only — no vector similarity.
+        Used for summarization where we want ALL chunks from a section,
+        not just the semantically closest ones.
+        """
+        results = self.collection.get(
+            where=filters,
+            limit=limit,
+            include=["documents", "metadatas"],
+        )
+
+        chunks_out = []
+        for i in range(len(results["ids"])):
+            chunks_out.append({
+                "id": results["ids"][i],
+                "content": results["documents"][i],
+                "metadata": results["metadatas"][i],
+                "score": 1.0,  # no similarity score for metadata-only fetch
+            })
+
+        # Sort by page number to preserve document flow
+        chunks_out.sort(key=lambda x: x["metadata"].get("page", 0))
+        return chunks_out

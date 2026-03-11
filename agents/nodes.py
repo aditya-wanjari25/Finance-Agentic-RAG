@@ -117,22 +117,28 @@ def retrieve(state: AgentState) -> dict:
             }
 
         elif query_type == "summary":
-            # Retrieve more chunks for summarization
-            chunks = retrieve_tool.run(
-                query=query,
-                ticker=ticker,
-                year=year,
-                n_results=8,
-                section_filter=section_filter,
+            # For summarization, fetch ALL chunks from the section by metadata
+            # rather than semantic search — we want complete coverage, not top-k
+            from retrieval.vector_store import VectorStore
+            store = VectorStore()
+            all_section_chunks = store.get_by_metadata(
+                filters={
+                    "$and": [
+                        {"ticker": {"$eq": ticker}},
+                        {"year": {"$eq": year}},
+                        {"section": {"$eq": section_filter or "MD&A"}},
+                    ]
+                },
+                limit=50,
             )
             summary_result = summarize_tool.run(
                 section_name=section_filter or "MD&A",
-                chunks=chunks,
+                chunks=all_section_chunks,
                 ticker=ticker,
                 year=year,
             )
             return {
-                "retrieved_chunks": chunks,
+                "retrieved_chunks": all_section_chunks,
                 "tool_results": {"summary": summary_result},
             }
 

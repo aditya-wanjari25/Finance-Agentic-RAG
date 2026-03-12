@@ -25,4 +25,4 @@ cp .env.example .env  # add your keys
 ```
 
 ## Usage
-_Coming soon as phases are completed._
+_Coming soon as phases are completed_

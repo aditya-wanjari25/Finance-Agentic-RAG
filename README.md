@@ -103,9 +103,9 @@ python -m evaluation.run_eval
 
 | Metric | Score |
 |---|---|
-| Faithfulness | 0.695 |
-| Answer Relevancy | 0.758 |
-| Context Precision | 0.453 |
+| Faithfulness | 0.723 |
+| Answer Relevancy | 0.859 |
+| Context Precision | 0.544 |
 | Context Recall | 0.450 |
 
 *Evaluated on 10 financial Q&A pairs from AAPL 2025 10-K*

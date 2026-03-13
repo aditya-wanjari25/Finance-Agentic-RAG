@@ -122,19 +122,27 @@ class VectorStore:
     
     def get_by_metadata(
     self,
-    filters: dict,
+    filters: dict = None,
     limit: int = 50,
-) -> list[dict]:
+    ) -> list[dict]:
         """
         Fetches chunks by metadata filter only — no vector similarity.
         Used for summarization where we want ALL chunks from a section,
         not just the semantically closest ones.
         """
-        results = self.collection.get(
-            where=filters,
-            limit=limit,
-            include=["documents", "metadatas"],
-        )
+        get_params = {
+        "limit": limit,
+        "include": ["documents", "metadatas"],
+    }
+        if filters:
+            get_params["where"] = filters
+
+        results = self.collection.get(**get_params)
+        # results = self.collection.get(
+        #     where=filters,
+        #     limit=limit,
+        #     include=["documents", "metadatas"],
+        # )
 
         chunks_out = []
         for i in range(len(results["ids"])):

@@ -1,0 +1,102 @@
+[
+    {
+      "id": "q1",
+      "query_type": "retrieval",
+      "question": "What are the main cybersecurity risks Apple faces?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple faces cybersecurity risks including malicious attacks to gain access to confidential information, and is at relatively greater risk due to its high profile and the personal data it holds.",
+      "section_hint": "Risk Factors"
+    },
+    {
+      "id": "q2",
+      "query_type": "retrieval",
+      "question": "What is Apple's total net sales for fiscal year 2025?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple's total net sales for fiscal year 2025 were approximately $416,161 billion",
+      "section_hint": "MD&A"
+    },
+    {
+      "id": "q3",
+      "query_type": "retrieval",
+      "question": "What regions does Apple operate in and which had the highest revenue?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple operates in Americas, Europe, Greater China, Japan, and Rest of Asia Pacific. The Americas region had the highest revenue.",
+      "section_hint": "MD&A"
+    },
+    {
+      "id": "q4",
+      "query_type": "calculation",
+      "question": "What is Apple's gross margin percentage for 2025?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple's gross margin percentage for fiscal year 2025 was approximately 46.9%.",
+      "section_hint": "MD&A"
+    },
+    {
+      "id": "q5",
+      "query_type": "calculation",
+      "question": "What is the gross margin percentage for Apple's Services segment in 2025?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple's Services segment gross margin percentage was approximately 75.4% in fiscal year 2025.",
+      "section_hint": "MD&A"
+    },
+    {
+      "id": "q6",
+      "query_type": "retrieval",
+      "question": "What factors caused Apple's iPhone revenue to change in 2025?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "iPhone net sales increased in 2025 due to higher net sales of Pro models",
+      "section_hint": "MD&A"
+    },
+    {
+      "id": "q7",
+      "query_type": "retrieval",
+      "question": "What are Apple's primary sources of liquidity?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple's primary sources of liquidity are cash generated from operations, existing cash and cash equivalents, and access to debt markets.",
+      "section_hint": "MD&A"
+    },
+    {
+      "id": "q8",
+      "query_type": "retrieval",
+      "question": "What legal proceedings is Apple involved in?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple is involved in various legal proceedings like EU Digital Markets Act investigations, a DOJ antitrust lawsuit, epic Games / App Store litigation, and other legal proceedings and claims",
+      "section_hint": "Legal Proceedings"
+    },
+    {
+      "id": "q9",
+      "query_type": "retrieval",
+      "question": "How does Apple describe its competition in the technology industry?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple describes its markets as highly competitive and subject to rapid technological change, competing across hardware, software, and services with companies of varying sizes.",
+      "section_hint": "Business"
+    },
+    {
+      "id": "q10",
+      "query_type": "summary",
+      "question": "What were Apple's key financial highlights in the MD&A section?",
+      "ticker": "AAPL",
+      "year": 2025,
+      "quarter": "annual",
+      "ground_truth": "Apple's MD&A highlights include total net sales growth, Services segment outperforming Products, gross margin expansion, and continued share buybacks and dividends.",
+      "section_hint": "MD&A"
+    }
+  ]

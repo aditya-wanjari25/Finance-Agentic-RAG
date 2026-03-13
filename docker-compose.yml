@@ -1,0 +1,28 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  finsight-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finsight-rag
+    ports:
+      - "8000:8000"       # host:container
+    env_file:
+      - .env              # mounts your API keys at runtime, never baked in
+    volumes:
+      # Persist vector store between container restarts
+      # Without this, ChromaDB resets every time the container stops
+      - .chroma:/app/.chroma
+
+      # Mount data directory so you can add PDFs without rebuilding
+      - ./data:/app/data
+    restart: unless-stopped   # auto-restart on crash, but not on manual stop
+
+    # Resource limits — good practice even locally
+    # Prevents runaway processes consuming all memory
+    deploy:
+      resources:
+        limits:
+          memory: 2G

@@ -1,0 +1,27 @@
+
+### `.dockerignore`
+
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Data and vector store — mounted as volumes instead
+data/
+.chroma/
+
+# Secrets — NEVER bake these into images
+.env
+
+# Dev tools
+.git/
+.pytest_cache/
+notebooks/
+*.ipynb
+
+# OS
+.DS_Store

@@ -75,7 +75,7 @@ def build_ragas_dataset(results: list[dict]) -> Dataset:
 
 def run_evaluation(
     test_path: str = "evaluation/test_questions.json",
-    output_path: str = "evaluation/results_new.json",
+    output_path: str = f"evaluation/results_{time.strftime('%Y%m%d_%H%M%S')}_reranked.json",
     sleep_between: float = 2.0,
 ) -> dict:
     """

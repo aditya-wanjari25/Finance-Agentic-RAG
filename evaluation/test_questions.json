@@ -16,7 +16,7 @@
       "ticker": "AAPL",
       "year": 2025,
       "quarter": "annual",
-      "ground_truth": "Apple's total net sales for fiscal year 2025 were approximately $416,161 billion",
+      "ground_truth": "Apple's total net sales for fiscal year 2025 were approximately $416,161 million",
       "section_hint": "MD&A"
     },
     {

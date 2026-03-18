@@ -4,6 +4,7 @@ from openai import OpenAI
 from retrieval.vector_store import VectorStore
 from agents.state import RetrievedChunk
 from dotenv import load_dotenv
+from retrieval.vector_store import get_vector_store
 
 load_dotenv()
 
@@ -26,7 +27,8 @@ class RetrieveTool:
 
     def __init__(self, collection_name: str = "finsight"):
         self.client = OpenAI()
-        self.store = VectorStore(collection_name=collection_name)
+        self.store = get_vector_store()
+
 
     def run(
         self,

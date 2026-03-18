@@ -3,7 +3,7 @@
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
-
+from retrieval.vector_store import get_vector_store
 from agents.state import AgentState, Citation
 from agents.tools.retrieve import RetrieveTool
 from agents.tools.compare import ComparePeriodsTool
@@ -117,18 +117,13 @@ def retrieve(state: AgentState) -> dict:
             }
 
         elif query_type == "summary":
-            # For summarization, fetch ALL chunks from the section by metadata
-            # rather than semantic search — we want complete coverage, not top-k
-            from retrieval.vector_store import VectorStore
-            store = VectorStore()
+            store = get_vector_store()
+
+            # Use keyword args — both ChromaDB and OpenSearch wrappers accept these
             all_section_chunks = store.get_by_metadata(
-                filters={
-                    "$and": [
-                        {"ticker": {"$eq": ticker}},
-                        {"year": {"$eq": year}},
-                        {"section": {"$eq": section_filter or "MD&A"}},
-                    ]
-                },
+                ticker=ticker,
+                year=year,
+                section=section_filter or "MD&A",
                 limit=50,
             )
             summary_result = summarize_tool.run(

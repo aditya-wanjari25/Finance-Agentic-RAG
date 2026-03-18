@@ -3,7 +3,7 @@
 import chromadb
 from chromadb.config import Settings
 from ingestion.chunkers.hierarchical_chunker import Chunk
-
+import os
 # Persist to disk so embeddings survive between runs.
 # Without this, ChromaDB resets every time — you'd re-embed on every run.
 CHROMA_PATH = ".chroma"
@@ -156,3 +156,20 @@ class VectorStore:
         # Sort by page number to preserve document flow
         chunks_out.sort(key=lambda x: x["metadata"].get("page", 0))
         return chunks_out
+
+    def get_vector_store():
+        """
+        Factory function — returns the right vector store based on environment.
+        USE_OPENSEARCH=true → OpenSearch (production)
+        USE_OPENSEARCH=false → ChromaDB (local development)
+
+        This pattern is called dependency injection — callers don't need to
+        know which backend they're using, just call get_vector_store().
+        """
+        use_opensearch = os.getenv("USE_OPENSEARCH", "false").lower() == "true"
+
+        if use_opensearch:
+            from retrieval.opensearch_store import OpenSearchStore
+            return OpenSearchStore()
+        else:
+            return VectorStore()

@@ -61,3 +61,23 @@ COMPARISON_TEMPLATE = """Compare the following information across time periods.
 - Note any new risks or developments in the more recent period
 - Cite every claim with [Section, Page X, Year]
 """
+
+CROSS_COMPANY_TEMPLATE = """Compare the following information between two companies based strictly on their SEC filings.
+
+## Question
+{query}
+
+## {ticker} ({year} 10-K)
+{context_ticker1}
+
+## {comparison_ticker} ({year} 10-K)
+{context_ticker2}
+
+## Instructions
+- Create a structured side-by-side comparison
+- Highlight key similarities and differences
+- Quantify differences where possible
+- Note any unique risks or strategies specific to each company
+- Cite every claim with [Ticker | Section | Page]
+- Do NOT use knowledge outside the provided context
+"""

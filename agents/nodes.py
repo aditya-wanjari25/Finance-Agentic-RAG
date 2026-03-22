@@ -28,18 +28,26 @@ summarize_tool = SummarizeSectionTool()
 
 
 def analyze_query(state: AgentState) -> dict:
-    """
-    Node 1: Classifies the query and extracts routing metadata.
-
-    Sends the query to GPT-4o with a structured prompt asking for:
-    - query_type: how should we handle this?
-    - section_filter: which SEC section is most relevant?
-    - comparison_year: is a second year needed?
-
-    We ask for JSON output and parse it — this is a simple
-    but effective way to get structured data from an LLM.
-    """
     print(f"\n🧠 Analyzing query: '{state['query']}'")
+
+    # Detect if query mentions a second ticker
+    # Common patterns: "compare AAPL and GOOGL", "Apple vs Google"
+    TICKER_MAP = {
+        "apple": "AAPL", "aapl": "AAPL",
+        "google": "GOOGL", "googl": "GOOGL", "alphabet": "GOOGL",
+        "microsoft": "MSFT", "msft": "MSFT",
+        "amazon": "AMZN", "amzn": "AMZN",
+        "meta": "META", "facebook": "META",
+        "nvidia": "NVDA", "nvda": "NVDA",
+    }
+
+    query_lower = state["query"].lower()
+    comparison_ticker = None
+
+    for name, ticker in TICKER_MAP.items():
+        if name in query_lower and ticker != state["ticker"]:
+            comparison_ticker = ticker
+            break
 
     prompt = QUERY_ANALYSIS_TEMPLATE.format(
         query=state["query"],
@@ -54,23 +62,29 @@ def analyze_query(state: AgentState) -> dict:
                 {"role": "system", "content": "You are a financial query classifier. Respond only in valid JSON."},
                 {"role": "user", "content": prompt},
             ],
-            temperature=0,        # deterministic — classification should not be creative
+            temperature=0,
             response_format={"type": "json_object"},
         )
 
         result = json.loads(response.choices[0].message.content)
         query_type = result.get("query_type", "retrieval")
+
+        # Override query type if second ticker detected
+        if comparison_ticker:
+            query_type = "cross_company"
+
         section_filter = result.get("section_filter")
         comparison_year = result.get("comparison_year")
 
         print(f"  → Query type: {query_type}")
         print(f"  → Section filter: {section_filter}")
-        print(f"  → Comparison year: {comparison_year}")
+        print(f"  → Comparison ticker: {comparison_ticker}")
 
         return {
             "query_type": query_type,
             "section_filter": section_filter,
             "comparison_year": comparison_year,
+            "comparison_ticker": comparison_ticker,
         }
 
     except Exception as e:
@@ -79,6 +93,7 @@ def analyze_query(state: AgentState) -> dict:
             "query_type": "retrieval",
             "section_filter": None,
             "comparison_year": None,
+            "comparison_ticker": None,
             "error": str(e),
         }
 
@@ -155,6 +170,38 @@ def retrieve(state: AgentState) -> dict:
                 "retrieved_chunks": chunks,
                 "tool_results": {"calculation": calc_result},
             }
+        elif query_type == "cross_company":
+            # Retrieve from both tickers in parallel
+            print(f"  🔍 Retrieving {ticker} chunks...")
+            chunks_ticker1 = retrieve_tool.run(
+                query=query,
+                ticker=ticker,
+                year=year,
+                n_results=5,
+                section_filter=section_filter,
+            )
+
+            comparison_ticker = state.get("comparison_ticker")
+            print(f"  🔍 Retrieving {comparison_ticker} chunks...")
+            chunks_ticker2 = retrieve_tool.run(
+                query=query,
+                ticker=comparison_ticker,
+                year=year,
+                n_results=5,
+                section_filter=section_filter,
+            )
+
+            return {
+                "retrieved_chunks": chunks_ticker1 + chunks_ticker2,
+                "tool_results": {
+                    "cross_company": {
+                        "ticker1": ticker,
+                        "ticker2": comparison_ticker,
+                        "chunks_ticker1": chunks_ticker1,
+                        "chunks_ticker2": chunks_ticker2,
+                    }
+                }
+            }
 
         else:
             # Standard retrieval
@@ -213,9 +260,11 @@ def generate_answer(state: AgentState) -> dict:
     try:
         if query_type == "comparison" and "comparison" in (tool_results or {}):
             messages = _build_comparison_messages(state)
+        elif query_type == "cross_company" and "cross_company" in (tool_results or {}):
+            messages = _build_cross_company_messages(state)
         else:
             messages = _build_standard_messages(state)
-
+            
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=messages,
@@ -355,3 +404,33 @@ def route_after_analysis(state: AgentState) -> str:
     if state.get("error"):
         return "handle_error"
     return "retrieve"
+
+def _build_cross_company_messages(state: AgentState) -> list:
+    """Builds messages for cross-company comparison queries."""
+    from agents.prompts.templates import CROSS_COMPANY_TEMPLATE
+
+    cross_data = state["tool_results"]["cross_company"]
+
+    def format_chunks(chunks):
+        parts = []
+        for i, chunk in enumerate(chunks):
+            meta = chunk["metadata"]
+            parts.append(
+                f"[{meta.get('section')} | Page {meta.get('page')}]\n"
+                f"{chunk['content']}"
+            )
+        return "\n\n".join(parts)
+
+    user_message = CROSS_COMPANY_TEMPLATE.format(
+        query=state["query"],
+        ticker=cross_data["ticker1"],
+        comparison_ticker=cross_data["ticker2"],
+        year=state["year"],
+        context_ticker1=format_chunks(cross_data["chunks_ticker1"]),
+        context_ticker2=format_chunks(cross_data["chunks_ticker2"]),
+    )
+
+    return [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]

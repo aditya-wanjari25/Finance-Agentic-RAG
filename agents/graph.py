@@ -77,6 +77,7 @@ def run_query(
         "final_answer": None,
         "citations": None,
         "error": None,
+        "comparison_ticker": None,
     }
 
     final_state = agent.invoke(initial_state)

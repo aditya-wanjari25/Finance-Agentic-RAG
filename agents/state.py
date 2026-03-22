@@ -70,3 +70,4 @@ class AgentState(TypedDict):
 
     # --- Control fields ---
     error: Optional[str]                # non-None means something went wrong
+    comparison_ticker: Optional[str]   # second ticker for cross-company queries

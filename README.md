@@ -38,6 +38,7 @@ PDF Documents (SEC 10-K/10-Q)
 - **Metadata-filtered retrieval** — every chunk tagged with ticker, year, section, page — enables precise company/year-specific search
 - **Agentic reasoning** — LangGraph agent classifies queries and routes to specialized financial tools
 - **Four query types** — retrieval, cross-period comparison, financial ratio calculation, section summarization
+- **Cross-company comparison** — compare any two ingested companies in a single query e.g. "Compare Apple and Google's risk factors"
 - **Structured answers** — every response includes citations with section and page number
 - **RAGAS evaluation** — quantitative quality scoring with faithfulness, relevancy, precision and recall
 - **Production AWS deployment** — ECS Fargate + OpenSearch + S3 + Secrets Manager
@@ -129,6 +130,15 @@ curl -X POST http://localhost:8000/query \
     "ticker": "AAPL",
     "year": 2025
   }'
+
+# Cross-company comparison
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Compare Apple and Google risk factors",
+    "ticker": "AAPL",
+    "year": 2025
+  }'
 ```
 
 ### 3. Run evaluation
@@ -153,6 +163,5 @@ python -m evaluation.run_eval
 - [ ] Application Load Balancer (stable DNS endpoint)
 - [ ] Query expansion for improved context recall
 - [ ] Hybrid BM25 + vector search in OpenSearch
-- [ ] Cross-document comparison (multiple tickers)
 - [ ] Earnings call transcript ingestion
 - [ ] Lambda trigger on S3 upload for auto-ingestion

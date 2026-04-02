@@ -41,6 +41,7 @@ PDF Documents (SEC 10-K/10-Q)
 - **Cross-company comparison** — compare any two ingested companies in a single query e.g. "Compare Apple and Google's risk factors"
 - **Structured answers** — every response includes citations with section and page number
 - **RAGAS evaluation** — quantitative quality scoring with faithfulness, relevancy, precision and recall
+- **LangSmith Tracing** - Added end-to-end observability, enabling run-level metrics (latency, cost, tags) and node-level tracing to debug retrieval vs generation issues in production.
 - **Production AWS deployment** — ECS Fargate + OpenSearch + S3 + Secrets Manager
 
 ## Tech Stack

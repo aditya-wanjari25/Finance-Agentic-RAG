@@ -9,6 +9,7 @@ from agents.nodes import (
     handle_error,
     route_after_analysis,
 )
+from agents.observability import get_langsmith_config, is_tracing_enabled
 
 
 def build_graph() -> StateGraph:
@@ -22,17 +23,13 @@ def build_graph() -> StateGraph:
     """
     graph = StateGraph(AgentState)
 
-    # Register nodes
     graph.add_node("analyze_query", analyze_query)
     graph.add_node("retrieve", retrieve)
     graph.add_node("generate_answer", generate_answer)
     graph.add_node("handle_error", handle_error)
 
-    # Entry point
     graph.set_entry_point("analyze_query")
 
-    # Conditional edge after analysis
-    # If error → handle_error, else → retrieve
     graph.add_conditional_edges(
         "analyze_query",
         route_after_analysis,
@@ -42,7 +39,6 @@ def build_graph() -> StateGraph:
         }
     )
 
-    # Linear edges for the happy path
     graph.add_edge("retrieve", "generate_answer")
     graph.add_edge("generate_answer", END)
     graph.add_edge("handle_error", END)
@@ -50,7 +46,6 @@ def build_graph() -> StateGraph:
     return graph.compile()
 
 
-# Compiled graph — import this everywhere
 agent = build_graph()
 
 
@@ -62,7 +57,7 @@ def run_query(
 ) -> dict:
     """
     Clean public interface for running the agent.
-    Returns the final state after the graph completes.
+    Automatically attaches LangSmith tracing metadata when enabled.
     """
     initial_state: AgentState = {
         "query": query,
@@ -71,14 +66,31 @@ def run_query(
         "quarter": quarter,
         "query_type": None,
         "comparison_year": None,
+        "comparison_ticker": None,
         "retrieved_chunks": None,
         "section_filter": None,
         "tool_results": None,
         "final_answer": None,
         "citations": None,
         "error": None,
-        "comparison_ticker": None,
     }
 
-    final_state = agent.invoke(initial_state)
+    # Build LangSmith config with rich metadata
+    # This metadata appears in the LangSmith UI for filtering and debugging
+    langsmith_config = get_langsmith_config(
+        run_name=f"{ticker} {year} — {query[:50]}",
+        tags=[ticker, str(year), quarter],
+        metadata={
+            "ticker": ticker,
+            "year": year,
+            "quarter": quarter,
+            "query_preview": query[:100],
+        }
+    )
+
+    if langsmith_config:
+        final_state = agent.invoke(initial_state, config=langsmith_config)
+    else:
+        final_state = agent.invoke(initial_state)
+
     return final_state

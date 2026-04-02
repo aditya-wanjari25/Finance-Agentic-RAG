@@ -93,3 +93,4 @@ class HealthResponse(BaseModel):
     vector_store_chunks: int
     collection_name: str
     openai_configured: bool
+    langsmith_tracing: bool 

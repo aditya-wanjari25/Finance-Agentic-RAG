@@ -4,6 +4,7 @@ import os
 from fastapi import APIRouter
 from api.schemas import HealthResponse
 from retrieval.vector_store import get_vector_store
+from agents.observability import is_tracing_enabled
 
 router = APIRouter()
 
@@ -24,4 +25,5 @@ async def health_check():
         vector_store_chunks=vector_store_chunks,
         collection_name=collection_name,
         openai_configured=bool(os.getenv("OPENAI_API_KEY")),
+        langsmith_tracing=is_tracing_enabled(),
     )

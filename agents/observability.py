@@ -39,5 +39,5 @@ def is_tracing_enabled() -> bool:
     """Returns True if LangSmith tracing is configured and enabled."""
     return (
         os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
-        and bool(os.getenv("LANGCHAIN_API_KEY"))
+        and bool(os.getenv("LANGSMITH_API_KEY"))
     )

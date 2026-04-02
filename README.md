@@ -54,6 +54,7 @@ PDF Documents (SEC 10-K/10-Q)
 | Document Storage | Local filesystem | AWS S3 |
 | Embeddings | text-embedding-3-small | text-embedding-3-small |
 | PDF Parsing | PyMuPDF + pdfplumber | PyMuPDF + pdfplumber |
+| Observability | LangSmith | LangSmith
 | API | FastAPI | FastAPI |
 | Container | Docker | AWS ECS Fargate |
 | Secrets | .env file | AWS Secrets Manager |

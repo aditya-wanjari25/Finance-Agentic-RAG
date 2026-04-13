@@ -1,6 +1,6 @@
 # FinSight RAG 🔍
 
-A production-grade **Agentic RAG system** for financial document analysis, built on SEC 10-K filings and deployed on AWS.
+A production-grade **Multi-Agent RAG system** for financial document analysis, built on SEC 10-K filings and deployed on AWS.
 
 ## Architecture
 ```
@@ -17,10 +17,16 @@ PDF Documents (SEC 10-K/10-Q)
 │  AWS OpenSearch (vectors + BM25)    │
 └────────┬────────────────────────────┘
          ↓
-┌───────────────────┐
-│  LangGraph Agent  │  Query classification → filtered retrieval → GPT-4o generation
-│                   │  Tools: retrieve, compare, calculate, summarize
-└────────┬──────────┘
+┌─────────────────────────────────────────────────────┐
+│  Multi-Agent System (LangGraph)                     │
+│                                                     │
+│  SupervisorAgent  ─── classify & route              │
+│       ├── RetrievalAgent     retrieve → generate    │
+│       ├── ComparisonAgent    retrieve → generate    │
+│       ├── CalculationAgent   retrieve → generate    │
+│       ├── SummarizationAgent retrieve → generate    │
+│       └── CrossCompanyAgent  retrieve → generate    │
+└────────┬────────────────────────────────────────────┘
          ↓
 ┌───────────────────┐
 │  FastAPI          │  REST API with Pydantic validation + Swagger UI
@@ -36,12 +42,12 @@ PDF Documents (SEC 10-K/10-Q)
 - **Finance-aware PDF parsing** — extracts tables, section headers, and narrative text from complex 10-K filings using PyMuPDF + pdfplumber
 - **Hierarchical chunking** — preserves table integrity, respects SEC section boundaries, filters table-of-contents noise
 - **Metadata-filtered retrieval** — every chunk tagged with ticker, year, section, page — enables precise company/year-specific search
-- **Agentic reasoning** — LangGraph agent classifies queries and routes to specialized financial tools
-- **Four query types** — retrieval, cross-period comparison, financial ratio calculation, section summarization
+- **Multi-agent reasoning** — supervisor LangGraph agent classifies queries and routes to five independent specialist agents, each with their own retrieve → generate pipeline
+- **Five query types** — retrieval, cross-period comparison, financial ratio calculation, section summarization, cross-company comparison
 - **Cross-company comparison** — compare any two ingested companies in a single query e.g. "Compare Apple and Google's risk factors"
 - **Structured answers** — every response includes citations with section and page number
 - **RAGAS evaluation** — quantitative quality scoring with faithfulness, relevancy, precision and recall
-- **LangSmith Tracing** - Added end-to-end observability, enabling run-level metrics (latency, cost, tags) and node-level tracing to debug retrieval vs generation issues in production.
+- **LangSmith Tracing** — end-to-end observability with per-specialist subgraph traces, enabling node-level debugging of retrieval vs generation issues in production
 - **Production AWS deployment** — ECS Fargate + OpenSearch + S3 + Secrets Manager
 
 ## Tech Stack

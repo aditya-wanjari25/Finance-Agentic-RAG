@@ -1,52 +1,21 @@
 # agents/graph.py
+#
+# Public entry point for the multi-agent system.
+# The API and evaluation modules call run_query() — nothing else should change.
+#
+# Architecture:
+#   SupervisorGraph (classify → route)
+#     ├── RetrievalAgent    (retrieve → generate)
+#     ├── ComparisonAgent   (retrieve → generate)
+#     ├── CalculationAgent  (retrieve → generate)
+#     ├── SummarizationAgent(retrieve → generate)
+#     └── CrossCompanyAgent (retrieve → generate)
 
-from langgraph.graph import StateGraph, END
-from agents.state import AgentState
-from agents.nodes import (
-    analyze_query,
-    retrieve,
-    generate_answer,
-    handle_error,
-    route_after_analysis,
-)
-from agents.observability import get_langsmith_config, is_tracing_enabled
+from agents.supervisor import build_supervisor
+from agents.state import SupervisorState
+from agents.observability import get_langsmith_config
 
-
-def build_graph() -> StateGraph:
-    """
-    Assembles the LangGraph agent.
-
-    Graph flow:
-    START → analyze_query → [route] → retrieve → generate_answer → END
-                                ↓
-                           handle_error → END
-    """
-    graph = StateGraph(AgentState)
-
-    graph.add_node("analyze_query", analyze_query)
-    graph.add_node("retrieve", retrieve)
-    graph.add_node("generate_answer", generate_answer)
-    graph.add_node("handle_error", handle_error)
-
-    graph.set_entry_point("analyze_query")
-
-    graph.add_conditional_edges(
-        "analyze_query",
-        route_after_analysis,
-        {
-            "retrieve": "retrieve",
-            "handle_error": "handle_error",
-        }
-    )
-
-    graph.add_edge("retrieve", "generate_answer")
-    graph.add_edge("generate_answer", END)
-    graph.add_edge("handle_error", END)
-
-    return graph.compile()
-
-
-agent = build_graph()
+supervisor = build_supervisor()
 
 
 def run_query(
@@ -56,10 +25,18 @@ def run_query(
     quarter: str = "annual",
 ) -> dict:
     """
-    Clean public interface for running the agent.
-    Automatically attaches LangSmith tracing metadata when enabled.
+    Runs the multi-agent system against ingested documents.
+
+    The supervisor classifies the query and delegates to the appropriate
+    specialist agent. Each specialist has its own retrieve → generate graph.
+
+    Returns the final SupervisorState dict, which includes:
+      - final_answer (str)
+      - citations    (list[Citation])
+      - query_type   (str)
+      - retrieved_chunks (list[RetrievedChunk])
     """
-    initial_state: AgentState = {
+    initial_state: SupervisorState = {
         "query": query,
         "ticker": ticker,
         "year": year,
@@ -67,16 +44,13 @@ def run_query(
         "query_type": None,
         "comparison_year": None,
         "comparison_ticker": None,
-        "retrieved_chunks": None,
         "section_filter": None,
-        "tool_results": None,
+        "retrieved_chunks": None,
         "final_answer": None,
         "citations": None,
         "error": None,
     }
 
-    # Build LangSmith config with rich metadata
-    # This metadata appears in the LangSmith UI for filtering and debugging
     langsmith_config = get_langsmith_config(
         run_name=f"{ticker} {year} — {query[:50]}",
         tags=[ticker, str(year), quarter],
@@ -85,12 +59,9 @@ def run_query(
             "year": year,
             "quarter": quarter,
             "query_preview": query[:100],
-        }
+        },
     )
 
     if langsmith_config:
-        final_state = agent.invoke(initial_state, config=langsmith_config)
-    else:
-        final_state = agent.invoke(initial_state)
-
-    return final_state
+        return supervisor.invoke(initial_state, config=langsmith_config)
+    return supervisor.invoke(initial_state)

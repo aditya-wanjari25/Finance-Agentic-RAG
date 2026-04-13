@@ -71,3 +71,46 @@ class AgentState(TypedDict):
     # --- Control fields ---
     error: Optional[str]                # non-None means something went wrong
     comparison_ticker: Optional[str]   # second ticker for cross-company queries
+
+
+class SpecialistState(TypedDict):
+    """
+    State for each specialist sub-agent graph (retrieve → generate).
+    Populated by the supervisor before invoking a specialist subgraph.
+    """
+    query: str
+    ticker: str
+    year: int
+    quarter: str
+    section_filter: Optional[str]
+    comparison_year: Optional[int]
+    comparison_ticker: Optional[str]
+    retrieved_chunks: Optional[list[RetrievedChunk]]
+    tool_results: Optional[dict[str, Any]]
+    final_answer: Optional[str]
+    citations: Optional[list[Citation]]
+    error: Optional[str]
+
+
+class SupervisorState(TypedDict):
+    """
+    State for the supervisor graph that classifies queries and routes to specialists.
+
+    The supervisor owns query_type, section_filter, and comparison fields.
+    Specialists write final_answer, citations, and retrieved_chunks back up.
+    """
+    # Input (set by caller, never mutated)
+    query: str
+    ticker: str
+    year: int
+    quarter: str
+    # Routing (set by classify node)
+    query_type: Optional[str]          # "retrieval" | "comparison" | "calculation" | "summary" | "cross_company"
+    comparison_year: Optional[int]
+    comparison_ticker: Optional[str]
+    section_filter: Optional[str]
+    # Output (written by specialist agents)
+    retrieved_chunks: Optional[list[RetrievedChunk]]
+    final_answer: Optional[str]
+    citations: Optional[list[Citation]]
+    error: Optional[str]

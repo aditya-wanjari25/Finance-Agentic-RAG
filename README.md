@@ -20,7 +20,7 @@ PDF Documents (SEC 10-K/10-Q)
 ┌─────────────────────────────────────────────────────┐
 │  Multi-Agent System (LangGraph)                     │
 │                                                     │
-│  SupervisorAgent  ─── classify & route              │
+│  SupervisorAgent  ─── classify → guardrail → route  │
 │       ├── RetrievalAgent     retrieve → generate    │
 │       ├── ComparisonAgent    retrieve → generate    │
 │       ├── CalculationAgent   retrieve → generate    │
@@ -43,6 +43,7 @@ PDF Documents (SEC 10-K/10-Q)
 - **Hierarchical chunking** — preserves table integrity, respects SEC section boundaries, filters table-of-contents noise
 - **Metadata-filtered retrieval** — every chunk tagged with ticker, year, section, page — enables precise company/year-specific search
 - **Multi-agent reasoning** — supervisor LangGraph agent classifies queries and routes to five independent specialist agents, each with their own retrieve → generate pipeline
+- **Guardrail node** — validates every query before routing; blocks off-topic questions and unrecognised ticker/year combinations with a clean user-facing message
 - **Five query types** — retrieval, cross-period comparison, financial ratio calculation, section summarization, cross-company comparison
 - **Cross-company comparison** — compare any two ingested companies in a single query e.g. "Compare Apple and Google's risk factors"
 - **Structured answers** — every response includes citations with section and page number

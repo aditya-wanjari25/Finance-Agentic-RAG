@@ -49,6 +49,7 @@ def run_query(
         "final_answer": None,
         "citations": None,
         "error": None,
+        "is_out_of_scope": None,
     }
 
     langsmith_config = get_langsmith_config(

@@ -14,6 +14,7 @@ from langgraph.graph import StateGraph, END
 from dotenv import load_dotenv
 
 from agents.state import SupervisorState
+from retrieval.vector_store import get_vector_store
 from agents.prompts.templates import QUERY_ANALYSIS_TEMPLATE
 from agents.specialists.retrieval_agent import RetrievalAgent
 from agents.specialists.comparison_agent import ComparisonAgent
@@ -112,6 +113,84 @@ def classify(state: SupervisorState) -> dict:
         }
 
 
+def guardrail(state: SupervisorState) -> dict:
+    """
+    Node 2: Validates the query before routing to any specialist.
+
+    Two checks run in order:
+    1. Relevance — is this actually a finance/SEC filing question?
+    2. Data existence — is the requested ticker/year ingested in the vector store?
+
+    Fails open on exceptions — a broken guardrail should never block a valid request.
+    """
+    print(f"\n🛡️  [Supervisor] Guardrail check...")
+
+    # Check 1: Relevance (cheap GPT-4o call, max 5 tokens)
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "Answer only 'yes' or 'no'."},
+                {"role": "user", "content": (
+                    f"Is this question about financial analysis, SEC filings, "
+                    f"company financials, or business performance?\n\nQuestion: {state['query']}"
+                )},
+            ],
+            temperature=0,
+            max_tokens=5,
+        )
+        is_relevant = response.choices[0].message.content.strip().lower().startswith("yes")
+    except Exception as e:
+        print(f"  ⚠️  Relevance check failed ({e}), failing open.")
+        is_relevant = True
+
+    if not is_relevant:
+        print(f"  ✋ Query is not finance-related.")
+        return {"is_out_of_scope": True, "error": "not_finance_related"}
+
+    # Check 2: Ticker/year existence in the vector store
+    try:
+        store = get_vector_store()
+        chunks = store.get_by_metadata(
+            ticker=state["ticker"],
+            year=state["year"],
+            limit=1,
+        )
+        if not chunks:
+            print(f"  ✋ No data found for {state['ticker']} {state['year']}.")
+            return {"is_out_of_scope": True, "error": "ticker_not_ingested"}
+    except Exception as e:
+        print(f"  ⚠️  Store check failed ({e}), failing open.")
+
+    print(f"  ✅ Guardrail passed.")
+    return {"is_out_of_scope": False}
+
+
+def out_of_scope(state: SupervisorState) -> dict:
+    """Returns a clean, user-facing message for queries that fail the guardrail."""
+    reason = state.get("error", "")
+
+    if reason == "not_finance_related":
+        message = (
+            "This system answers questions about SEC 10-K and 10-Q filings only. "
+            "Please ask about a specific company's financials, risk factors, "
+            "business performance, or similar topics."
+        )
+    elif reason == "ticker_not_ingested":
+        message = (
+            f"No data found for {state['ticker']} {state['year']}. "
+            f"Please ingest the document first via POST /ingest before querying."
+        )
+    else:
+        message = (
+            "Unable to process this request. Please ask a finance-related question "
+            "about an ingested company."
+        )
+
+    print(f"  [out_of_scope] Returning scoped message for reason: {reason}")
+    return {"final_answer": message, "citations": []}
+
+
 def handle_error(state: SupervisorState) -> dict:
     error = state.get("error", "Unknown error")
     print(f"\n❌ [Supervisor] Error handler: {error}")
@@ -159,12 +238,19 @@ def _route(state: SupervisorState) -> str:
     if state.get("error"):
         return "handle_error"
     return {
-        "retrieval":    "retrieval_agent",
-        "comparison":   "comparison_agent",
-        "calculation":  "calculation_agent",
-        "summary":      "summarization_agent",
+        "retrieval":     "retrieval_agent",
+        "comparison":    "comparison_agent",
+        "calculation":   "calculation_agent",
+        "summary":       "summarization_agent",
         "cross_company": "cross_company_agent",
     }.get(state.get("query_type", "retrieval"), "retrieval_agent")
+
+
+def _route_after_guardrail(state: SupervisorState) -> str:
+    """Routes to out_of_scope if the guardrail failed, otherwise to the specialist."""
+    if state.get("is_out_of_scope"):
+        return "out_of_scope"
+    return _route(state)
 
 
 # -----------------------------------------------------------------
@@ -172,9 +258,19 @@ def _route(state: SupervisorState) -> str:
 # -----------------------------------------------------------------
 
 def build_supervisor() -> StateGraph:
+    """
+    Assembles the supervisor graph.
+
+    Flow:
+      START → classify → guardrail → [route] → {specialist} → END
+                                             ↘ out_of_scope  → END
+                                             ↘ handle_error  → END
+    """
     graph = StateGraph(SupervisorState)
 
     graph.add_node("classify", classify)
+    graph.add_node("guardrail", guardrail)
+    graph.add_node("out_of_scope", out_of_scope)
     graph.add_node("retrieval_agent", _run_retrieval_agent)
     graph.add_node("comparison_agent", _run_comparison_agent)
     graph.add_node("calculation_agent", _run_calculation_agent)
@@ -183,11 +279,13 @@ def build_supervisor() -> StateGraph:
     graph.add_node("handle_error", handle_error)
 
     graph.set_entry_point("classify")
+    graph.add_edge("classify", "guardrail")
 
     graph.add_conditional_edges(
-        "classify",
-        _route,
+        "guardrail",
+        _route_after_guardrail,
         {
+            "out_of_scope":       "out_of_scope",
             "retrieval_agent":    "retrieval_agent",
             "comparison_agent":   "comparison_agent",
             "calculation_agent":  "calculation_agent",
@@ -198,7 +296,7 @@ def build_supervisor() -> StateGraph:
     )
 
     for node in [
-        "retrieval_agent", "comparison_agent", "calculation_agent",
+        "out_of_scope", "retrieval_agent", "comparison_agent", "calculation_agent",
         "summarization_agent", "cross_company_agent", "handle_error",
     ]:
         graph.add_edge(node, END)

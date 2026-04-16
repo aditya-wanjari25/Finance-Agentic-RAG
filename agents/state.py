@@ -114,3 +114,5 @@ class SupervisorState(TypedDict):
     final_answer: Optional[str]
     citations: Optional[list[Citation]]
     error: Optional[str]
+    # Guardrail (set by guardrail node)
+    is_out_of_scope: Optional[bool]

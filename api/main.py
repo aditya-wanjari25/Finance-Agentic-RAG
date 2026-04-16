@@ -7,7 +7,7 @@ from api.routes import query, ingest, health
 app = FastAPI(
     title="FinSight RAG API",
     description=(
-        "Production-grade Agentic RAG system for financial document analysis. "
+        "Production-grade Multi-Agentic RAG system for financial document analysis. "
         "Supports SEC 10-K and 10-Q filings with multi-document comparison, "
         "financial ratio calculation, and section summarization."
     ),

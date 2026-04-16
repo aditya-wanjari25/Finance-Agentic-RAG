@@ -117,38 +117,14 @@ def guardrail(state: SupervisorState) -> dict:
     """
     Node 2: Validates the query before routing to any specialist.
 
-    Two checks run in order:
-    1. Relevance — is this actually a finance/SEC filing question?
-    2. Data existence — is the requested ticker/year ingested in the vector store?
+    Checks that the requested ticker/year is actually ingested in the vector store.
+    This catches queries for companies or years that haven't been ingested yet,
+    preventing the agent from hallucinating answers against empty retrieval.
 
-    Fails open on exceptions — a broken guardrail should never block a valid request.
+    Fails open on store errors — a broken guardrail should never block a valid request.
     """
     print(f"\n🛡️  [Supervisor] Guardrail check...")
 
-    # Check 1: Relevance (cheap GPT-4o call, max 5 tokens)
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "Answer only 'yes' or 'no'."},
-                {"role": "user", "content": (
-                    f"Is this question about financial analysis, SEC filings, "
-                    f"company financials, or business performance?\n\nQuestion: {state['query']}"
-                )},
-            ],
-            temperature=0,
-            max_tokens=5,
-        )
-        is_relevant = response.choices[0].message.content.strip().lower().startswith("yes")
-    except Exception as e:
-        print(f"  ⚠️  Relevance check failed ({e}), failing open.")
-        is_relevant = True
-
-    if not is_relevant:
-        print(f"  ✋ Query is not finance-related.")
-        return {"is_out_of_scope": True, "error": "not_finance_related"}
-
-    # Check 2: Ticker/year existence in the vector store
     try:
         store = get_vector_store()
         chunks = store.get_by_metadata(
@@ -168,27 +144,14 @@ def guardrail(state: SupervisorState) -> dict:
 
 def out_of_scope(state: SupervisorState) -> dict:
     """Returns a clean, user-facing message for queries that fail the guardrail."""
-    reason = state.get("error", "")
-
-    if reason == "not_finance_related":
-        message = (
-            "This system answers questions about SEC 10-K and 10-Q filings only. "
-            "Please ask about a specific company's financials, risk factors, "
-            "business performance, or similar topics."
-        )
-    elif reason == "ticker_not_ingested":
-        message = (
+    print(f"  [out_of_scope] ticker_not_ingested: {state['ticker']} {state['year']}")
+    return {
+        "final_answer": (
             f"No data found for {state['ticker']} {state['year']}. "
             f"Please ingest the document first via POST /ingest before querying."
-        )
-    else:
-        message = (
-            "Unable to process this request. Please ask a finance-related question "
-            "about an ingested company."
-        )
-
-    print(f"  [out_of_scope] Returning scoped message for reason: {reason}")
-    return {"final_answer": message, "citations": []}
+        ),
+        "citations": [],
+    }
 
 
 def handle_error(state: SupervisorState) -> dict:
@@ -237,13 +200,22 @@ def _route(state: SupervisorState) -> str:
     """Maps query_type to the specialist node name."""
     if state.get("error"):
         return "handle_error"
+
+    query_type = state.get("query_type", "retrieval")
+
+    # Comparison requires a second year — if the LLM didn't extract one,
+    # fall back to standard retrieval rather than crashing with year=None
+    if query_type == "comparison" and not state.get("comparison_year"):
+        print("  ⚠️  comparison query_type but no comparison_year — falling back to retrieval")
+        query_type = "retrieval"
+
     return {
         "retrieval":     "retrieval_agent",
         "comparison":    "comparison_agent",
         "calculation":   "calculation_agent",
         "summary":       "summarization_agent",
         "cross_company": "cross_company_agent",
-    }.get(state.get("query_type", "retrieval"), "retrieval_agent")
+    }.get(query_type, "retrieval_agent")
 
 
 def _route_after_guardrail(state: SupervisorState) -> str:

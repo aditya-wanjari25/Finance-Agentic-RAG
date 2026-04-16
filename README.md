@@ -41,6 +41,7 @@ PDF Documents (SEC 10-K/10-Q)
 
 - **Finance-aware PDF parsing** — extracts tables, section headers, and narrative text from complex 10-K filings using PyMuPDF + pdfplumber
 - **Hierarchical chunking** — preserves table integrity, respects SEC section boundaries, filters table-of-contents noise
+- **Hybrid retrieval** — BM25 (keyword) + vector (semantic) search combined with Reciprocal Rank Fusion; improves recall on exact financial figures, section names, and ticker symbols
 - **Metadata-filtered retrieval** — every chunk tagged with ticker, year, section, page — enables precise company/year-specific search
 - **Multi-agent reasoning** — supervisor LangGraph agent classifies queries and routes to five independent specialist agents, each with their own retrieve → generate pipeline
 - **Guardrail node** — validates every query before routing; blocks off-topic questions and unrecognised ticker/year combinations with a clean user-facing message

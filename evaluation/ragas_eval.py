@@ -39,16 +39,11 @@ def run_agent_on_question(question: dict) -> dict:
         quarter=question["quarter"],
     )
 
-    # Extract raw content from retrieved chunks for context evaluation
+    # Extract raw content from retrieved chunks for context evaluation.
+    # retrieved_chunks is set by each specialist agent and bubbled up to SupervisorState.
     contexts = []
     for chunk in (result.get("retrieved_chunks") or []):
         contexts.append(chunk["content"][:500])
-
-    # For comparison queries, also include comparison chunks
-    tool_results = result.get("tool_results") or {}
-    if "comparison" in tool_results:
-        for chunk in tool_results["comparison"].get("comparison", []):
-            contexts.append(chunk["content"])
 
     return {
         "question": question["question"],
